@@ -11,22 +11,33 @@ interface SkillFormData {
 }
 
 interface ActionResult {
-  success: boolean;
+  message: string;
+  success?: boolean;
   error?: string;
   skillId?: number;
 }
 
 export async function createSkill(
-  data: SkillFormData,
-  userId: number
+  prevState: ActionResult,
+  formData: FormData
 ): Promise<ActionResult> {
   try {
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const category = formData.get("category") as string;
+
+    if (!name || !description) {
+      return { message: "Name and description are required", success: false };
+    }
+
+    const userId = 1; // TODO: ambil dari session/auth
+
     const skill = await prisma.skill.create({
       data: {
-        name: data.name,
-        description: data.description,
-        content: data.content,
-        isPublic: data.isPublic,
+        name,
+        description,
+        content: category,
+        isPublic: true,
         authorId: userId,
       },
     });
@@ -34,10 +45,10 @@ export async function createSkill(
     revalidatePath("/skills");
     revalidatePath("/dashboard");
 
-    return { success: true, skillId: skill.id };
+    return { message: "Skill created!", success: true, skillId: skill.id };
   } catch (error) {
     console.error("Create skill error:", error);
-    return { success: false, error: "Failed to create skill" };
+    return { message: "Failed to create skill", success: false };
   }
 }
 
@@ -47,14 +58,13 @@ export async function updateSkill(
   userId: number
 ): Promise<ActionResult> {
   try {
-    // Verify ownership
     const existing = await prisma.skill.findUnique({
       where: { id },
       select: { authorId: true },
     });
 
     if (!existing || existing.authorId !== userId) {
-      return { success: false, error: "Not authorized to edit this skill" };
+      return { message: "Not authorized to edit this skill", success: false };
     }
 
     await prisma.skill.update({
@@ -71,10 +81,10 @@ export async function updateSkill(
     revalidatePath(`/skills/${id}`);
     revalidatePath("/dashboard");
 
-    return { success: true, skillId: id };
+    return { message: "Skill updated!", success: true, skillId: id };
   } catch (error) {
     console.error("Update skill error:", error);
-    return { success: false, error: "Failed to update skill" };
+    return { message: "Failed to update skill", success: false };
   }
 }
 
@@ -83,26 +93,6 @@ export async function deleteSkill(
   userId: number
 ): Promise<ActionResult> {
   try {
-    // Verify ownership
     const existing = await prisma.skill.findUnique({
       where: { id },
-      select: { authorId: true },
-    });
-
-    if (!existing || existing.authorId !== userId) {
-      return { success: false, error: "Not authorized to delete this skill" };
-    }
-
-    await prisma.skill.delete({
-      where: { id },
-    });
-
-    revalidatePath("/skills");
-    revalidatePath("/dashboard");
-
-    return { success: true };
-  } catch (error) {
-    console.error("Delete skill error:", error);
-    return { success: false, error: "Failed to delete skill" };
-  }
-}
+      select: {
