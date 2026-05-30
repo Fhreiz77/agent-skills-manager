@@ -17,6 +17,7 @@ interface ActionResult {
   skillId?: number;
 }
 
+// Untuk useActionState (app/skills/create/page.tsx)
 export async function createSkill(
   prevState: ActionResult,
   formData: FormData
@@ -38,6 +39,36 @@ export async function createSkill(
         description,
         content: category,
         isPublic: true,
+        authorId: userId,
+      },
+    });
+
+    revalidatePath("/skills");
+    revalidatePath("/dashboard");
+
+    return { message: "Skill created!", success: true, skillId: skill.id };
+  } catch (error) {
+    console.error("Create skill error:", error);
+    return { message: "Failed to create skill", success: false };
+  }
+}
+
+// Untuk client-side manual call (app/dashboard/skills/new/page.tsx)
+export async function createSkillDirect(
+  data: SkillFormData,
+  userId: number
+): Promise<ActionResult> {
+  try {
+    if (!data.name || !data.description) {
+      return { message: "Name and description are required", success: false };
+    }
+
+    const skill = await prisma.skill.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        content: data.content,
+        isPublic: data.isPublic,
         authorId: userId,
       },
     });

@@ -4,12 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { createSkill } from "@/action/skills";
+import { createSkillDirect } from "@/action/skills";
 
-/**
- * New Skill Page - CSR (Client-Side Rendering)
- * Uses client state for form handling
- */
 export default function NewSkillPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -37,7 +33,7 @@ export default function NewSkillPage() {
     setIsSubmitting(true);
 
     try {
-      const result = await createSkill(
+      const result = await createSkillDirect(
         {
           name: name.trim(),
           description: description.trim(),
@@ -50,7 +46,7 @@ export default function NewSkillPage() {
       if (result.success) {
         router.push("/dashboard");
       } else {
-        setError(result.error || "Failed to create skill");
+        setError(result.message || "Failed to create skill");
       }
     } catch (err) {
       setError("An error occurred while creating the skill");
