@@ -95,4 +95,23 @@ export async function deleteSkill(
   try {
     const existing = await prisma.skill.findUnique({
       where: { id },
-      select: {
+      select: { authorId: true },
+    });
+
+    if (!existing || existing.authorId !== userId) {
+      return { message: "Not authorized to delete this skill", success: false };
+    }
+
+    await prisma.skill.delete({
+      where: { id },
+    });
+
+    revalidatePath("/skills");
+    revalidatePath("/dashboard");
+
+    return { message: "Skill deleted!", success: true };
+  } catch (error) {
+    console.error("Delete skill error:", error);
+    return { message: "Failed to delete skill", success: false };
+  }
+}
